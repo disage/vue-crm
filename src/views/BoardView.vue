@@ -3,9 +3,9 @@
     <table>
       <thead>
         <tr>
-          <th v-for="(column, index) in columns" :key="column.id" @dragstart="onDragStart($event, index)"
+          <th v-for="(columnId, index) in columnOrder" :key="columnId" @dragstart="onDragStart($event, index)"
             @dragover.prevent="onDragOver" @drop="onDrop($event, index)" draggable="true">
-            {{ column.name }}
+            {{ columns[columnId - 1].label }}
           </th>
           <th>
             <div class="add-column-button">
@@ -38,8 +38,27 @@
       </thead>
       <tbody>
         <tr v-for="item in data" :key="item.id">
-          <td v-for="(columnValue, columnName) in item.columns" :key="columnName">
-            {{ columnValue }}
+          <td v-for="(columnId) in columnOrder" :key="columnId" @dblclick="startEditing(item, columnId)">
+            <template v-if="!isEditing(item.id, columnId)">
+              <template v-if="columns[columnId - 1].type === 'singleselect'">
+                <v-autocomplete v-model="item.columns[columnId]" variant="solo-filled"
+                  :items="columns[columnId - 1].options" />
+              </template>
+              <div v-else>{{ item.columns[columnId] }}</div>
+            </template>
+            <template v-else>
+              <template v-if="columns[columnId - 1].type === 'text'">
+                <v-text-field v-model="editedValue" variant="solo-filled" @blur="stopEditing(item.id, columnId)" />
+              </template>
+              <template v-else-if="columns[columnId - 1].type === 'number'">
+                <v-text-field type="number" variant="solo-filled" v-model="editedValue"
+                  @blur="stopEditing(item.id, columnId)" />
+              </template>
+              <template v-else-if="columns[columnId - 1].type === 'date'">
+                <v-text-field type="date" variant="solo-filled" v-model="editedValue"
+                  @blur="stopEditing(item.id, columnId)" />
+              </template>
+            </template>
           </td>
         </tr>
       </tbody>
@@ -55,18 +74,20 @@ export default {
     const isAddColumnMenuOpen = ref(false)
     const newColumnName = ref('')
     const newColumnType = ref('')
+    const editing = ref({})
+    const editedValue = ref('')
     const columns = ref([
-      { id: 1, name: 'ID', type: 'text' },
-      { id: 2, name: 'Name', type: 'text' },
-      { id: 3, name: 'Age', type: 'number' },
-      { id: 4, name: 'Profession', type: 'singleSelect' }
+      { id: 1, name: 'column1', label: 'ID', type: 'text' },
+      { id: 2, name: 'column2', label: 'Name', type: 'text' },
+      { id: 3, name: 'column3', label: 'Age', type: 'number' },
+      { id: 4, name: 'column4', label: 'Profession', type: 'singleselect', options: ['QA', 'PM', 'FE DEV', 'BE DEV', 'UI UX'] }
     ])
     const data = ref([
-      { id: 1, columns: { column1: 1, column2: 'Alex', column3: 21, column4: 'QA' } },
-      { id: 2, columns: { column1: 2, column2: 'Dima', column3: 22, column4: 'PM' } },
-      { id: 3, columns: { column1: 3, column2: 'Vlad', column3: 24, column4: 'Dev' } }
+      { id: 1, columns: { 1: 1, 2: 'Alex', 3: 21, 4: 'QA' } },
+      { id: 2, columns: { 1: 2, 2: 'Dima', 3: 22, 4: 'PM' } },
+      { id: 3, columns: { 1: 3, 2: 'Vlad', 3: 24, 4: 'QA' } }
     ])
-
+    const columnOrder = ref(columns.value.map(column => column.id))
     const onDragStart = (e, columnIndex) => {
       e.dataTransfer.setData('text/plain', columnIndex.toString())
     }
@@ -81,12 +102,12 @@ export default {
     }
 
     const addColumn = () => {
+      const newColumnKey = columns.value.length + 1
       if (newColumnName.value.trim() !== '' && newColumnType.value.trim() !== '') {
-        columns.value.push({ id: columns.value.length + 1, name: newColumnName.value, type: newColumnType.value })
-        const newColumnKey = `column${columns.value.length + 1}`
+        columns.value.push({ id: columns.value.length + 1, label: newColumnName.value, type: newColumnType.value.replace(/\s/g, '').toLowerCase() })
 
         data.value.forEach(item => {
-          switch (newColumnType.value.toLowerCase()) {
+          switch (newColumnType.value) {
             case 'text':
             case 'email':
             case 'singleselect':
@@ -100,31 +121,48 @@ export default {
               item.columns[newColumnKey] = ''
           }
         })
-
+        columnOrder.value.push(newColumnKey)
         isAddColumnMenuOpen.value = false
         newColumnName.value = ''
         newColumnType.value = ''
       }
     }
-
     const onDrop = (e, targetColumnIndex) => {
       const draggedColumnIndex = parseInt(e.dataTransfer.getData('text/plain'))
 
       if (targetColumnIndex !== draggedColumnIndex) {
-        const tempColumn = columns.value.splice(draggedColumnIndex, 1)[0]
-        columns.value.splice(targetColumnIndex, 0, tempColumn)
+        columnOrder.value.splice(targetColumnIndex, 0, columnOrder.value.splice(draggedColumnIndex, 1)[0])
 
         data.value.forEach(item => {
-          const columnsArray = Object.entries(item.columns)
-          const temp = columnsArray[draggedColumnIndex]
-          columnsArray[draggedColumnIndex] = columnsArray[targetColumnIndex]
-          columnsArray[targetColumnIndex] = temp
-          item.columns = Object.fromEntries(columnsArray)
+          const updatedColumns = {}
+          columnOrder.value.forEach(columnName => {
+            updatedColumns[columnName] = item.columns[columnName]
+          })
+          item.columns = updatedColumns
         })
       }
     }
 
-    return { addColumn, columns, data, isAddColumnMenuOpen, newColumnName, newColumnType, onDragOver, onDragStart, onDrop, resetInput }
+    const startEditing = (item, columnId) => {
+      editing.value = {}
+      editing.value[item.id + '_' + columnId] = true
+      editedValue.value = item.columns[columnId]
+    }
+
+    const stopEditing = (itemId, columnId) => {
+      editing.value[itemId + '_' + columnId] = false
+      data.value.find(item => item.id === itemId).columns[columnId] = editedValue.value
+    }
+
+    const isEditing = (itemId, columnId) => {
+      return editing.value[itemId + '_' + columnId]
+    }
+
+    const columnType = (columnId) => {
+      return columns.value.find(column => column.id === parseInt(columnId, 10)).type || 'text'
+    }
+
+    return { addColumn, columns, data, isAddColumnMenuOpen, newColumnName, newColumnType, onDragOver, onDragStart, onDrop, resetInput, isEditing, stopEditing, startEditing, columnType, editedValue, columnOrder }
   }
 }
 </script>
@@ -160,5 +198,10 @@ td {
 
 td {
   border: 0.2px solid #ccc;
+  width: 180px;
+}
+
+.v-input__details {
+  display: none !important;
 }
 </style>
