@@ -1,6 +1,6 @@
 <template>
     <div>
-        <v-banner lines="one" icon="mdi-account" color="deep-purple-accent-4" class="my-4">
+        <v-banner lines="one" icon="mdi-account" color="deep-purple-accent-4">
             <div>
                 <v-banner-text>
                     <h4>Good night, User!</h4>

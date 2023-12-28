@@ -8,10 +8,15 @@
 
     <v-divider></v-divider>
 
-    <v-list density="compact" nav>
+    <v-list density="compact" nav class="sidebar-links">
+      <router-link to="/">
+        <v-list-item prepend-icon="mdi mdi-home" title="Home" value="home"></v-list-item>
+      </router-link>
       <v-list-item prepend-icon="mdi-briefcase" title="Workspace" value="workspace"></v-list-item>
       <v-list-item prepend-icon="mdi-account" title="My Account" value="account"></v-list-item>
-      <v-list-item prepend-icon="mdi-account-group-outline" title="Users" value="users"></v-list-item>
+      <router-link to="/boards/0001">
+        <v-list-item prepend-icon="mdi mdi-view-quilt" title="Contact" value="contact"></v-list-item>
+      </router-link>
     </v-list>
   </v-navigation-drawer>
 </template>
@@ -22,3 +27,12 @@ import { ref } from 'vue'
 const drawer = ref(true)
 const rail = ref(true)
 </script>
+
+<style lang="scss">
+.sidebar-links {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+</style>
