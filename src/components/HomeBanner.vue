@@ -11,6 +11,41 @@
                 <v-btn :icon="theme.global.current.value.dark ? 'mdi-weather-sunny' : 'mdi-moon-waning-crescent'"
                     @click="toggleTheme" />
                 <v-btn icon="mdi-magnify" @click="toggleSearch" />
+                <v-menu
+                v-model="settingOpen"
+                :close-on-content-click="false"
+                location="end"
+              >
+                <template v-slot:activator="{ props }">
+                  <v-btn icon="mdi-account" v-bind="props"></v-btn>
+                </template>
+
+                <v-card min-width="300">
+                  <v-list>
+                    <v-list-item
+                      prepend-avatar="https://cdn.vuetifyjs.com/images/john.jpg"
+                      title="John Leider"
+                      subtitle="Founder of Vuetify"
+                    >
+                      <template v-slot:append>
+                      </template>
+                    </v-list-item>
+                  </v-list>
+
+                  <v-divider></v-divider>
+
+                  <v-list>
+                    <v-list-item>
+                      <v-switch
+                        color="purple"
+                        label="Enable messages"
+                        hide-details
+                      ></v-switch>
+                      <v-btn prepend-icon="mdi-logout-variant">Log Out</v-btn>
+                    </v-list-item>
+                  </v-list>
+                </v-card>
+              </v-menu>
             </template>
         </v-banner>
         <template>
@@ -48,6 +83,7 @@ import { useTheme } from 'vuetify'
 export default {
   setup () {
     const searchVisible = ref(false)
+    const settingOpen = ref(false)
     const searchText = ref('')
     const theme = useTheme()
 
@@ -60,12 +96,15 @@ export default {
     const toggleSearch = () => {
       searchVisible.value = !searchVisible.value
     }
+    const toogleSetting = () => {
+      settingOpen.value = !settingOpen.value
+    }
 
     const closeSearch = () => {
       searchVisible.value = false
     }
 
-    return { theme, searchVisible, searchText, toggleSearch, closeSearch, toggleTheme }
+    return { theme, searchVisible, searchText, toggleSearch, closeSearch, toggleTheme, toogleSetting, settingOpen }
   }
 }
 </script>

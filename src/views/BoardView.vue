@@ -11,7 +11,7 @@
             <div class="add-column-button">
               <v-menu v-model="isAddColumnMenuOpen" :close-on-content-click="false" location="end">
                 <template v-slot:activator="{ props }">
-                  <v-btn icon="mdi mdi-plus" @click="resetInput" v-bind="props" />
+                  <v-btn variant="text" icon="mdi mdi-plus" @click="resetInput" v-bind="props" />
                 </template>
 
                 <v-card min-width="300">
@@ -55,8 +55,12 @@
                   @blur="stopEditing(item.id, columnId)" />
               </template>
               <template v-else-if="columns[columnId - 1].type === 'date'">
-                <v-text-field type="date" variant="solo-filled" v-model="editedValue"
-                  @blur="stopEditing(item.id, columnId)" />
+                <v-menu v-model="isCalendarOpen" :close-on-content-click="false" location="end" @update:modelValue="stopEditing(item.id, columnId)">
+                  <template v-slot:activator="{ props }">
+                    <span v-bind="props">{{ item.columns[columnId] }}</span>
+                  </template>
+                  <v-date-picker v-model="formattedDate" />
+                </v-menu>
               </template>
             </template>
           </td>
@@ -67,10 +71,11 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 export default {
   setup () {
+    const isCalendarOpen = ref(false)
     const isAddColumnMenuOpen = ref(false)
     const newColumnName = ref('')
     const newColumnType = ref('')
@@ -147,6 +152,8 @@ export default {
       editing.value = {}
       editing.value[item.id + '_' + columnId] = true
       editedValue.value = item.columns[columnId]
+      const type = columnType(columnId)
+      if (type === 'date') isCalendarOpen.value = true
     }
 
     const stopEditing = (itemId, columnId) => {
@@ -162,7 +169,14 @@ export default {
       return columns.value.find(column => column.id === parseInt(columnId, 10)).type || 'text'
     }
 
-    return { addColumn, columns, data, isAddColumnMenuOpen, newColumnName, newColumnType, onDragOver, onDragStart, onDrop, resetInput, isEditing, stopEditing, startEditing, columnType, editedValue, columnOrder }
+    const formattedDate = computed({
+      get: () => new Date(editedValue.value),
+      set: (value) => {
+        editedValue.value = value.toLocaleDateString('en-CA').slice(0, 10)
+      }
+    })
+
+    return { isCalendarOpen, formattedDate, addColumn, columns, data, isAddColumnMenuOpen, newColumnName, newColumnType, onDragOver, onDragStart, onDrop, resetInput, isEditing, stopEditing, startEditing, columnType, editedValue, columnOrder }
   }
 }
 </script>

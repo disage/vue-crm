@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import BoardView from '../views/BoardView.vue'
+import WorkspaceView from '../views/WorkspaceView.vue'
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -10,8 +11,14 @@ const routes: Array<RouteRecordRaw> = [
   },
   {
     path: '/boards/:id',
-    name: 'BoardDetail',
+    name: 'board',
     component: BoardView,
+    props: true
+  },
+  {
+    path: '/workspace/:id',
+    name: 'workspace',
+    component: WorkspaceView,
     props: true
   },
   {
