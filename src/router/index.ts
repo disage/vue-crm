@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import BoardView from '../views/BoardView.vue'
+import BoardView from '../views/Board/BoardView.vue'
 import WorkspaceView from '../views/WorkspaceView.vue'
 
 const routes: Array<RouteRecordRaw> = [
