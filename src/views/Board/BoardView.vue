@@ -1,6 +1,6 @@
 <template>
   <div class="board-container">
-    <v-data-table :headers="sortedColumns" :items="data" class="elevation-1" :key="tableKey">
+    <v-data-table :headers="sortedColumns" :items="data" class="elevation-1">
       <template v-slot:top>
         <v-toolbar flat>
           <v-toolbar-title>CLIENTS BOARD</v-toolbar-title>
@@ -8,9 +8,7 @@
           <v-spacer></v-spacer>
           <v-dialog v-model="dialog" max-width="500px">
             <template v-slot:activator="{ props }">
-              <v-btn class="mb-2" color="primary" dark v-bind="props">
-                New Item
-              </v-btn>
+              <v-btn class="mb-2" color="primary" dark v-bind="props">New Item</v-btn>
             </template>
             <v-card>
               <v-card-title>
@@ -32,12 +30,8 @@
               </v-card-text>
               <v-card-actions>
                 <v-spacer></v-spacer>
-                <v-btn color="blue darken-1" text @click="close">
-                  Cancel
-                </v-btn>
-                <v-btn color="blue darken-1" text @click="save">
-                  Save
-                </v-btn>
+                <v-btn color="blue darken-1" text @click="close">Cancel</v-btn>
+                <v-btn color="blue darken-1" text @click="save">Save</v-btn>
               </v-card-actions>
             </v-card>
           </v-dialog>
@@ -54,7 +48,6 @@
           </v-dialog>
         </v-toolbar>
       </template>
-
       <!-- eslint-disable-next-line vue/valid-v-slot-->
       <template v-slot:item.actions="{ item }">
         <v-icon small class="mr-2" @click="editItem(item)">
@@ -70,11 +63,11 @@
           Reset
         </v-btn>
       </template>
-      <!--Board Headers-->
       <!-- eslint-disable-next-line vue/no-unused-vars-->
       <template v-for="(header, index) in columns" :key="header.key" v-slot:[`header.${header.key}`]="header">
         <div class="board-header-item">
-          <BoardAddColumnMenu v-if="header.column.type === 'addcolumn'" class="column-title" :boardColumns="columns" :boardData="data" @mousedown="onDrag(index)" />
+          <BoardAddColumnMenu v-if="header.column.type === 'addcolumn'" class="column-title" :boardColumns="columns"
+            :boardData="data" @mousedown="onDrag(index)" />
           <span v-else class="column-title" @mousedown="onDrag(index)">
             {{ header.column.title }}
           </span>
@@ -83,7 +76,7 @@
           </div>
         </div>
       </template>
-      <!--Board Content-->
+      <!--content-->
       <template v-for="column in columns" :key="column.key" v-slot:[`item.${column.key}`]="{ item }">
         <template v-if="column.type === 'text'">
           <v-text-field v-model="item[column.key]" outlined dense></v-text-field>
@@ -92,8 +85,17 @@
           <v-text-field v-model="item[column.key]" type="number" outlined dense></v-text-field>
         </template>
         <template v-else-if="column.type === 'singleselect'">
-          <v-select v-model="item[column.key]" :items="['QA', 'PM', 'FE DEV', 'BE DEV', 'UI UX']" outlined
-            dense></v-select>
+          <v-select v-model="item[column.key]" :items="column?.items" outlined dense></v-select>
+        </template>
+        <template v-else-if="column.type === 'date'">
+          <v-menu v-model="item[column.key].isCalendarOpen" :close-on-content-click="false" location="end">
+            <template v-slot:activator="{ props }">
+              <span v-bind="props">{{ formattedDate(item[column.key].value) || 'select date' }}
+                <v-icon icon="mdi-calendar-blank" />
+              </span>
+            </template>
+            <v-date-picker v-model="item[column.key].value" />
+          </v-menu>
         </template>
       </template>
     </v-data-table>
@@ -124,25 +126,29 @@ export default defineComponent({
     ])
     const data = ref([
       {
-        col_1: 'id1',
+        col_id: 'id1',
         col_2: 'Dima',
         col_3: 26,
-        col_4: 'IT DEV'
+        col_4: 'test',
+        col_5: { value: null, isCalendarOpen: false }
       },
       {
-        col_1: 'id3',
+        col_id: 'id3',
         col_2: 'Alex',
         col_3: 36,
-        col_4: 'UX'
+        col_4: 'qa',
+        col_5: { value: null, isCalendarOpen: false }
       }
     ])
 
     const columns = ref([
       { key: 'col_0', title: 'Add', type: 'addcolumn', width: 20 },
-      { key: 'col_1', title: 'ID', type: 'text', width: 100 },
+      { key: 'col_id', title: 'ID', type: 'text', width: 100 },
       { key: 'col_2', title: 'Name', type: 'text', width: 200 },
-      { key: 'col_3', title: 'Age', type: 'number', width: 300 },
-      { key: 'col_4', title: 'Profession', type: 'singleselect', width: 400 }
+      { key: 'col_3', title: 'Age', type: 'number', width: 100 },
+      { key: 'col_4', title: 'Profession', type: 'singleselect', width: 300, items: ['test', 'qa', 'designer'] },
+      { key: 'col_5', title: 'date', type: 'date', width: 200 }
+
     ])
     const sortedColumns = computed(() => {
       return columns.value.filter(col => col.type !== 'addcolumn').concat(columns.value.find(col => col.type === 'addcolumn'))
@@ -192,6 +198,10 @@ export default defineComponent({
     watch(dialogDelete, val => {
       val || closeDelete()
     })
+    const setEditingCalendar = (columnKey, item) => {
+      if (isCalendarOpen.value === false) { data.value.find(el => el.col_id === item.col_id)[columnKey] = editedValue.value }
+      editedValue.value = ''
+    }
     const {
       addColumn,
       columnWidth,
@@ -202,19 +212,16 @@ export default defineComponent({
       isCalendarOpen,
       isColumnSettingsMenuOpen,
       isDragging,
-      isEditing,
       mouseX,
       mouseY,
       newColumnName,
       newColumnType,
       onDrag,
-      resetInput,
-      startEditing,
       startResize,
-      stopEditing,
       updateColumnSettingsMenuStatus
     } = useBoardView(columns, data, fullData)
     return {
+      setEditingCalendar,
       save,
       deleteItemConfirm,
       editItem,
@@ -232,16 +239,12 @@ export default defineComponent({
       isCalendarOpen,
       isColumnSettingsMenuOpen,
       isDragging,
-      isEditing,
       mouseX,
       mouseY,
       newColumnName,
       newColumnType,
       onDrag,
-      resetInput,
-      startEditing,
       startResize,
-      stopEditing,
       updateColumnSettingsMenuStatus,
       sortedColumns
     }
@@ -364,6 +367,8 @@ tr {
 }
 
 .column-title {
+  display: inline-flex;
   white-space: nowrap;
+  width: 100%;
 }
 </style>

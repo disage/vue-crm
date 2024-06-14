@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onBeforeUnmount, reactive } from 'vue'
+import { onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { nanoid } from 'nanoid'
 
 export default function useBoardView (columns, data) {
@@ -125,36 +125,7 @@ export default function useBoardView (columns, data) {
   }
 
   // Cell editing
-  const editing = ref({})
   const editedValue = ref('')
-
-  const startEditing = (item, columnId) => {
-    const type = columnType(columnId)
-    if (type !== 'singleselect') {
-      editing.value = {}
-      editing.value[item.id + '_' + columnId] = true
-      editedValue.value = item.columns[columnId]
-    }
-    if (type === 'date') isCalendarOpen.value = true
-  }
-
-  const stopEditing = (itemId, columnId) => {
-    editing.value[itemId + '_' + columnId] = false
-    data.value.find(item => item.id === itemId).columns[columnId] = editedValue.value
-  }
-
-  const isEditing = (itemId, columnId) => {
-    return editing.value[itemId + '_' + columnId]
-  }
-
-  const columnType = (columnId) => {
-    return columns.value.find(column => column.id === parseInt(columnId, 10)).type || 'text'
-  }
-
-  const resetInput = () => {
-    newColumnName.value = ''
-    newColumnType.value = ''
-  }
 
   // Add new column
   const isAddColumnMenuOpen = ref(false)
@@ -162,24 +133,30 @@ export default function useBoardView (columns, data) {
   const newColumnType = ref('')
 
   const addColumn = () => {
+    const colType = newColumnType.value.toLowerCase().replace(/ /g, '')
     const newColumnKey = nanoid()
     if (newColumnName.value.trim() !== '' && newColumnType.value.trim() !== '') {
-      columns.value.push({ key: `col_${newColumnKey}`, title: newColumnName.value, type: newColumnType.value.replace(/\s/g, '').toLowerCase(), width: 100 })
-      // options: newColumnType.value === 'singleselect' ? null : ['test', 'PM', 'FE DEV', 'BE DEV', 'UI UX']
+      const newColumnIndex = columns.value.push({ key: `col_${newColumnKey}`, title: newColumnName.value, type: colType, width: 150 })
+      if (colType === 'singleselect') {
+        columns.value[newColumnIndex - 1].items = ['CEO', 'IT', 'Testnet']
+      }
       data.value.forEach(item => {
-        switch (newColumnType.value) {
+        switch (colType) {
           case 'text':
           case 'email':
           case 'singleselect':
           case 'multiselect':
-            item[`col_${newColumnKey}`] = 'test'
+            item[`col_${newColumnKey}`] = null
+            break
+          case 'date':
+            item[`col_${newColumnKey}`] = { value: null, isCalendarOpen: false }
             break
           case 'number':
           case 'phone':
             item[`col_${newColumnKey}`] = 0
             break
           default:
-            item[`col_${newColumnKey}`] = ''
+            item[`col_${newColumnKey}`] = '11'
         }
       })
       isAddColumnMenuOpen.value = false
@@ -191,12 +168,16 @@ export default function useBoardView (columns, data) {
   // Calendar
   const isCalendarOpen = ref(false)
 
-  const formattedDate = computed({
-    get: () => new Date(editedValue.value),
-    set: (value) => {
-      editedValue.value = value.toLocaleDateString('en-CA').slice(0, 10)
-    }
-  })
+  // const formattedDate = computed({
+  //   get: () => new Date(editedValue.value),
+  //   set: (value) => {
+  //     editedValue.value = value.toLocaleDateString('en-CA').slice(0, 10)
+  //   }
+  // })
+
+  const formattedDate = (date) => {
+    return date ? date.toLocaleDateString('en-CA').slice(0, 10) : ''
+  }
 
   // Resize
   let resizingColumnIndex = null
@@ -234,8 +215,6 @@ export default function useBoardView (columns, data) {
   }
 
   return {
-    isColumnSettingsMenuOpen,
-    updateColumnSettingsMenuStatus,
     addColumn,
     columns,
     columnWidth,
@@ -245,16 +224,14 @@ export default function useBoardView (columns, data) {
     getColumnById,
     isAddColumnMenuOpen,
     isCalendarOpen,
+    isColumnSettingsMenuOpen,
     isDragging,
-    isEditing,
     mouseX,
     mouseY,
     newColumnName,
     newColumnType,
     onDrag,
-    resetInput,
-    startEditing,
     startResize,
-    stopEditing
+    updateColumnSettingsMenuStatus
   }
 }
